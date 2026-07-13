@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📖 ¡Los Hacedores de Páginas Mágicas! — Un cuento para niños</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    min-height: 100vh;
+  }
+
+  body {
+    background: linear-gradient(135deg, #FFE066 0%, #FF6BB5 40%, #7B5EA7 70%, #3ECFCF 100%);
+    background-attachment: fixed;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 16px 50px;
+    font-family: 'Nunito', sans-serif;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Floating background stars */
+  .bg-stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .star {
+    position: absolute;
+    animation: floatStar 6s ease-in-out infinite;
+    opacity: 0.35;
+  }
+  @keyframes floatStar {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-18px) rotate(15deg); }
+  }
+
+  /* ---- BOOK WRAPPER ---- */
+  .book-wrapper {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 780px;
+    /* clips the flip overflow */
+    overflow: hidden;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  }
+
+  /* Spine */
+  .spine {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 100%;
+    background: linear-gradient(to bottom, #c0a060, #8b6914, #c0a060);
+    z-index: 20;
+    box-shadow: 0 0 12px rgba(0,0,0,0.4);
+    pointer-events: none;
+  }
+
+  /* Slider that holds all spreads side by side */
+  .book-slider {
+    display: flex;
+    transition: transform 0.45s cubic-bezier(0.77, 0, 0.175, 1);
+    will-change: transform;
+  }
+
+  /* Each spread = two pages side by side */
+  .spread {
+    display: flex;
+    flex-shrink: 0;
+    width: 100%;
+  }
+
+  /* Individual page */
+  .page {
+    width: 50%;
+    min-height: 480px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 24px 42px;
+    text-align: center;
+  }
+  .page-left  { border-right: 3px solid rgba(0,0,0,0.08); }
+
+  /* Page numbers */
+  .page-num {
+    position: absolute;
+    bottom: 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(0,0,0,0.28);
+  }
+  .page-left  .page-num { left: 16px; }
+  .page-right .page-num { right: 16px; }
+
+  /* ---- TYPOGRAPHY ---- */
+  .book-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.5rem;
+    line-height: 1.1;
+    margin-bottom: 10px;
+  }
+  .book-subtitle { font-size: 0.97rem; font-weight: 700; line-height: 1.45; }
+  .page-heading {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.55rem;
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+  .page-text { font-size: 0.9rem; font-weight: 600; line-height: 1.65; color: rgba(0,0,0,0.72); }
+  .big-emoji   { font-size: 3.2rem; margin-bottom: 12px; display: block; filter: drop-shadow(2px 3px 5px rgba(0,0,0,0.18)); }
+  .medium-emoji { font-size: 2rem; margin-bottom: 10px; display: block; }
+
+  /* Emoji chips */
+  .emoji-grid { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin: 10px 0; }
+  .emoji-chip {
+    background: rgba(255,255,255,0.5);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* ---- COLOUR THEMES ---- */
+  .theme-cover    { background: linear-gradient(145deg,#FFD700,#FF8C00); color:#4a2000; }
+  .theme-cover2   { background: linear-gradient(145deg,#FF8C00,#FF4500); color:#fff; }
+  .theme-purple   { background: linear-gradient(145deg,#E8D5FF,#C9A0FF); color:#2d0060; }
+  .theme-teal     { background: linear-gradient(145deg,#C8FFF4,#7EFFDB); color:#003d30; }
+  .theme-pink     { background: linear-gradient(145deg,#FFD6EC,#FFB3D9); color:#5c0035; }
+  .theme-blue     { background: linear-gradient(145deg,#D0E8FF,#9DCEFF); color:#002855; }
+  .theme-green    { background: linear-gradient(145deg,#D4FFD4,#8DFFB3); color:#003d1a; }
+  .theme-orange   { background: linear-gradient(145deg,#FFE8CC,#FFB366); color:#4d2000; }
+  .theme-lavender { background: linear-gradient(145deg,#F0DDFF,#D9AAFF); color:#300050; }
+  .theme-mint     { background: linear-gradient(145deg,#DDFFEE,#AAFFCC); color:#004422; }
+  .theme-coral    { background: linear-gradient(145deg,#FFE0DA,#FFB3A7); color:#5c1200; }
+  .theme-yellow   { background: linear-gradient(145deg,#FFFACC,#FFE866); color:#444400; }
+  .theme-back     { background: linear-gradient(145deg,#3ECFCF,#00B4D8); color:#002233; }
+  .theme-back2    { background: linear-gradient(145deg,#7B5EA7,#9B6FD6); color:#fff; }
+
+  /* UI widgets */
+  .char-box {
+    background: rgba(255,255,255,0.4);
+    border-radius: 18px;
+    padding: 12px 16px;
+    margin-bottom: 9px;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .char-emoji { font-size: 1.5rem; flex-shrink: 0; }
+  .char-text  { font-size: 0.78rem; font-weight: 700; line-height: 1.4; }
+
+  .step-box {
+    background: rgba(255,255,255,0.45);
+    border-radius: 13px;
+    padding: 9px 13px;
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .step-num  { font-family:'Fredoka One',cursive; font-size:1.4rem; min-width:32px; }
+  .step-text { font-size:0.78rem; font-weight:700; line-height:1.4; text-align:left; }
+
+  .stats-row { display:flex; gap:8px; width:100%; justify-content:center; margin-top:9px; }
+  .stat-card  { background:rgba(255,255,255,0.5); border-radius:12px; padding:8px 10px; flex:1; text-align:center; }
+  .stat-num   { font-family:'Fredoka One',cursive; font-size:1.35rem; display:block; }
+  .stat-label { font-size:0.63rem; font-weight:700; opacity:0.72; }
+
+  .tag-bubble { display:inline-block; background:rgba(255,255,255,0.6); border-radius:50px; padding:5px 14px; margin:4px; font-size:0.78rem; font-weight:800; }
+  .cover-badge { background:rgba(255,255,255,0.35); border-radius:50px; padding:6px 16px; font-size:0.75rem; font-weight:800; margin-top:8px; letter-spacing:.05em; }
+  .cover-star-row { display:flex; gap:6px; justify-content:center; margin:10px 0; font-size:1.3rem; }
+
+  .back-link {
+    display:inline-block;
+    background:rgba(255,255,255,0.9);
+    color:#003366;
+    border-radius:50px;
+    padding:10px 22px;
+    font-family:'Fredoka One',cursive;
+    font-size:0.92rem;
+    text-decoration:none;
+    margin-top:12px;
+    box-shadow:0 4px 14px rgba(0,0,0,0.15);
+    transition:transform .15s;
+  }
+  .back-link:hover { transform:scale(1.05); }
+  .social-row { display:flex; gap:9px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
+  .social-pill { background:rgba(255,255,255,0.3); border-radius:30px; padding:4px 12px; font-size:0.74rem; font-weight:800; }
+
+  /* ---- NAVIGATION ---- */
+  .nav-bar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 24px;
+  }
+  .nav-btn {
+    background: rgba(255,255,255,0.92);
+    border: none;
+    border-radius: 50px;
+    padding: 13px 30px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.22);
+    transition: transform .15s, box-shadow .15s;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    user-select: none;
+  }
+  .nav-btn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 10px 26px rgba(0,0,0,0.28); }
+  .nav-btn:active:not(:disabled) { transform: translateY(0); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .page-indicator {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: rgba(255,255,255,0.95);
+    min-width: 90px;
+    text-align: center;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  /* Progress dots */
+  .progress-dots { display:flex; gap:8px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.38);
+    transition: background .3s, transform .3s;
+    cursor: pointer;
+  }
+  .dot.active { background:#fff; transform:scale(1.35); }
+
+  @media (max-width: 620px) {
+    .page { min-height: 260px; padding: 20px 14px 36px; }
+    .book-title { font-size: 1.7rem; }
+    .page-heading { font-size: 1.15rem; }
+    .big-emoji { font-size: 2.2rem; }
+    .nav-btn { padding: 10px 18px; font-size: 0.9rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-stars" id="bgStars"></div>
+
+<!-- BOOK -->
+<div class="book-wrapper" id="bookWrapper">
+  <div class="spine"></div>
+  <div class="book-slider" id="slider">
+
+    <!-- SPREAD 0: COVER -->
+    <div class="spread">
+      <div class="page page-left theme-cover">
+        <span class="big-emoji">🌟</span>
+        <div class="book-title">¡Los Hacedores<br>de Páginas Mágicas!</div>
+        <div class="book-subtitle">Un cuento sobre el pequeño equipo<br>que hace brillar los negocios ✨</div>
+        <div class="cover-star-row">⭐⭐⭐⭐⭐</div>
+        <div class="cover-badge">📖 Un Libro de Aventuras para Niños</div>
+      </div>
+      <div class="page page-right theme-cover2">
+        <span class="big-emoji">🦊⚡</span>
+        <div class="page-heading">¡Conoce a Pagey el Zorro!</div>
+        <div class="page-text">¡Pagey es un zorrito listo y veloz con un cohete en la espalda! Ayuda a los negocios a ser encontrados en internet.<br><br>¡Dale la vuelta a la página para comenzar tu aventura! 👉</div>
+        <div class="cover-badge" style="margin-top:18px;">by EasyPageX ✨</div>
+      </div>
+    </div>
+
+    <!-- SPREAD 1: Pages 1-2 -->
+    <div class="spread">
+      <div class="page page-left theme-purple">
+        <span class="big-emoji">🌍</span>
+        <div class="page-heading">Érase una vez…</div>
+        <div class="page-text">Había un mundo enorme lleno de negocios pequeños y maravillosos. Panaderos que hacían ricos pasteles 🎂, paseadores de perros que adoraban a los cachorros 🐾, ¡y profes de yoga que se doblaban como fideos! 🧘</div>
+        <div class="page-num">1</div>
+      </div>
+      <div class="page page-right theme-teal">
+        <span class="big-emoji">😔</span>
+        <div class="page-heading">¡Pero había un problema!</div>
+        <div class="page-text">¡Toda esta gente maravillosa tenía un gran problema… nadie podía ENCONTRARLOS en internet! 😱<br><br>¡Era como tener un puesto de limonada fantástico… escondido en una cueva oscura! 🍋🦇</div>
+        <div class="page-num">2</div>
+      </div>
+    </div>
+
+    <!-- SPREAD 2: Pages 3-4 -->
+    <div class="spread">
+      <div class="page page-left theme-pink">
+        <span class="big-emoji">💡</span>
+        <div class="page-heading">¡Entonces llegó EasyPageX!</div>
+        <div class="page-text">¡Una mañana soleada apareció un equipo súper listo! Se llamaban a sí mismos <strong>EasyPageX</strong> — ¡los Hacedores de Páginas Mágicas! 🧙‍♂️<br><br>¿Su superpoder? ¡Crear páginas web bonitas llamadas <em>landing pages</em> para que los clientes encuentren negocios al instante! 🚀</div>
+        <div class="page-num">3</div>
+      </div>
+      <div class="page page-right theme-blue">
+        <span class="big-emoji">📄✨</span>
+        <div class="page-heading">¿Qué es una landing page?</div>
+        <div class="page-text">Imagina una puerta mágica 🚪 en internet. Cuando alguien llama, se abre y muestra exactamente lo que hace un negocio — ¡con colores bonitos, botones divertidos y un gran letrero de "¡Llámame!"!<br><br>¡Eso es una landing page! Fácil, ¿verdad? 😄</div>
+        <div class="page-num">4</div>
+      </div>
+    </div>
+
+    <!-- SPREAD 3: Pages 5-6 -->
+    <div class="spread">
+      <div class="page page-left theme-green">
+        <span class="big-emoji">⚡</span>
+        <div class="page-heading">¡Súper Rápido!</div>
+        <div class="page-text">¡Los Hacedores de Páginas trabajan <strong>muy, muy rápido!</strong> ⏱️<br><br>En solo <strong>24 horas</strong> — ¡un día entero y su noche! — tu nueva página brillante ya está lista.<br><br>¡Más rápido que un reparto de pizza! 🍕</div>
+        <div class="page-num">5</div>
+      </div>
+      <div class="page page-right theme-orange">
+        <span class="big-emoji">📱</span>
+        <div class="page-heading">¡Funciona en el Móvil!</div>
+        <div class="page-text">¿Sabes cómo todo el mundo mira el móvil TODO el tiempo? 😄📲<br><br>EasyPageX se asegura de que cada página se vea PERFECTA en móviles y tablets. ¡Ahí viven la mayoría de los clientes! ¡Así tu negocio brilla en todas partes! ✨</div>
+        <div class="page-num">6</div>
+      </div>
+    </div>
+
+    <!-- SPREAD 4: Pages 7-8 -->
+    <div class="spread">
+      <div class="page page-left theme-lavender">
+        <span class="big-emoji">🎨</span>
+        <div class="page-heading">¡Bonita y Colorida!</div>
+        <div class="page-text">¡Cada página es como un cuadro pintado solo para TI! 🖌️<br><br>Colores arcoíris brillantes 🌈, animaciones suaves que bailan al hacer scroll, y un diseño que nadie más en el mundo tiene. ¡Porque TÚ eres especial!</div>
+        <div class="page-num">7</div>
+      </div>
+      <div class="page page-right theme-mint">
+        <span class="big-emoji">🌐</span>
+        <div class="page-heading">¡En Cualquier Idioma!</div>
+        <div class="page-text">¿Hablas español? ¿Inglés? ¡EasyPageX también! 🇪🇸🇬🇧<br><br>"<em>¡Hola!</em>" o "Hello!" — crean páginas en ambos idiomas para que los negocios hablen con clientes de todo el mundo. 🌍</div>
+        <div class="page-num">8</div>
+      </div>
+    </div>
+
+    <!-- SPREAD 5: Pages 9-10 -->
+    <div class="spread">
+      <div class="page page-left theme-coral">
+        <span class="big-emoji">🔧</span>
+        <div class="page-heading">¡Sin Dolores de Cabeza!</div>
+        <div class="page-text">Algunas webs necesitan que las arregles cada día como un grifo que gotea 🚿 — ¡estas no!<br><br>Las páginas de EasyPageX se entregan como UN solo archivo mágico. Sin botones que pulsar, sin plugins que actualizar. Simplemente… ¡funciona! ¡Para siempre! 🙌</div>
+        <div class="page-num">9</div>
+      </div>
+      <div class="page page-right theme-yellow">
+        <span class="big-emoji">💬</span>
+        <div class="page-heading">¡Pulsa y Di Hola!</div>
+        <div class="page-text">¡Cada página tiene un gran botón verde que abre <strong>WhatsApp</strong> — como por arte de magia! 📲💚<br><br>Los clientes lo pulsan y hablan con el negocio al instante. ¡Sin esperas, sin formularios, sin líos! Solo una charla amigable. <em>¡Ding!</em> 🛎️</div>
+        <div class="page-num">10</div>
+      </div>
+    </div>
+
+    <!-- SPREAD 6: Pages 11-12 -->
+    <div class="spread">
+      <div class="page page-left theme-purple">
+        <span class="big-emoji">🏪</span>
+        <div class="page-heading">¿A quién ayudan?</div>
+        <div class="page-text">¡EasyPageX ayuda a tantísimos negocios diferentes! ¡Son como superhéroes que ayudan a todo el mundo! 🦸</div>
+        <div class="emoji-grid">
+          <span class="emoji-chip">💄 Maquilladores</span>
+          <span class="emoji-chip">🐾 Cuidadores de Mascotas</span>
+          <span class="emoji-chip">🧘 Profes de Yoga</span>
+          <span class="emoji-chip">✂️ Peluqueros</span>
+          <span class="emoji-chip">🏡 Casas Rurales</span>
+          <span class="emoji-chip">🧠 Terapeutas</span>
+        </div>
+        <div class="page-num">11</div>
+      </div>
+      <div class="page page-right theme-blue">
+        <span class="big-emoji">🌟</span>
+        <div class="page-heading">¡…y mucho más!</div>
+        <div class="emoji-grid">
+          <span class="emoji-chip">🔐 Escape Rooms</span>
+          <span class="emoji-chip">🌿 Terapeutas Holísticos</span>
+          <span class="emoji-chip">🎨 Estudios de Tatuaje</span>
+          <span class="emoji-chip">🍞 Panaderías</span>
+          <span class="emoji-chip">🏠 Inmobiliarias</span>
+          <span class="emoji-chip">📸 Fotógrafos</span>
+          <span class="emoji-chip">⚖️ Abogados</span>
+          <span class="emoji-chip">🏕️ Aventuras</span>
+        </div>
+        <div class="page-text" style="margin-top:10px;">¡Más de <strong>20 tipos diferentes</strong> de negocios! ¿Está el TUYO en la lista? 😊</div>
+        <div class="page-num">12</div>
+      </div>
+    </div>
+
+    <!-- SPREAD 7: Pages 13-14 -->
+    <div class="spread">
+      <div class="page page-left theme-teal">
+        <span class="big-emoji">🪄</span>
+        <div class="page-heading">¿Cómo funciona la magia?</div>
+        <div class="page-text">¡Es tan fácil como 1-2-3!</div>
+        <div class="step-box">
+          <div class="step-num">1️⃣</div>
+          <div class="step-text"><strong>Mandas un mensaje</strong> por WhatsApp contándole a EasyPageX sobre tu negocio — ¡como contarle a un amigo tu hobby favorito! 💬</div>
+        </div>
+        <div class="step-box">
+          <div class="step-num">2️⃣</div>
+          <div class="step-text"><strong>Ellos crean tu página</strong> — todos los colores bonitos y las palabras perfectas, ¡diseñada solo para ti! 🎨</div>
+        </div>
+        <div class="page-num">13</div>
+      </div>
+      <div class="page page-right theme-pink">
+        <span class="big-emoji">🚀</span>
+        <div class="page-heading">¡Y luego…!</div>
+        <div class="step-box" style="margin-bottom:12px;">
+          <div class="step-num">3️⃣</div>
+          <div class="step-text">¡<strong>¡Tu página sale en vivo!</strong> Tu página terminada está lista para que todo el mundo la vea. ¡Corrigen lo que no te gusta hasta que sonrías y digas <em>"¡PERFECTA!"</em>! 😍</div>
+        </div>
+        <div class="page-text">Tres pequeños pasos para cambiarlo todo. ¿No es genial? 🌟</div>
+        <div class="page-num">14</div>
+      </div>
+    </div>
+
+    <!-- SPREAD 8: Pages 15-16 -->
+    <div class="spread">
+      <div class="page page-left theme-green">
+        <span class="big-emoji">🏆</span>
+        <div class="page-heading">¡Grandes Cifras!</div>
+        <div class="page-text">¿Quieres saber un secreto? ¡EasyPageX ha ayudado a MUCHÍSIMOS negocios! 🤫</div>
+        <div class="stats-row">
+          <div class="stat-card"><span class="stat-num">100+</span><div class="stat-label">¡Páginas Creadas!</div></div>
+          <div class="stat-card"><span class="stat-num">20+</span><div class="stat-label">Tipos de Negocio</div></div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card"><span class="stat-num">24h</span><div class="stat-label">Entrega Súper Rápida</div></div>
+          <div class="stat-card"><span class="stat-num">ES+EN</span><div class="stat-label">¡Dos Idiomas!</div></div>
+        </div>
+        <div class="page-num">15</div>
+      </div>
+      <div class="page page-right theme-orange">
+        <span class="big-emoji">😍</span>
+        <div class="page-heading">¡Negocios Felices!</div>
+        <div class="page-text">Cada negocio que recibe una página de EasyPageX dice lo mismo:<br><br><em>"¡Ahora mis clientes pueden encontrarme!"</em> 🎉<br><br>Peluqueros de perros en Madrid 🐶, cuidadores de gatos en Buenos Aires 🐱, coaches de bienestar en Aruba 🌴…<br>¡EasyPageX los ayuda a TODOS! 🌍</div>
+        <div class="page-num">16</div>
+      </div>
+    </div>
+
+    <!-- SPREAD 9: Pages 17-18 -->
+    <div class="spread">
+      <div class="page page-left theme-lavender">
+        <span class="big-emoji">🦊✨</span>
+        <div class="page-heading">Pagey el Zorro dice…</div>
+        <div class="char-box">
+          <div class="char-emoji">🦊</div>
+          <div class="char-text">"¡Todo gran negocio empezó con un pequeño paso — y ese primer paso es que la gente pueda ENCONTRARTE! ¡Yo puedo ayudarte con eso!" 🚀</div>
+        </div>
+        <div class="char-box">
+          <div class="char-emoji">⚡</div>
+          <div class="char-text">"¡Con una página con superpoderes, tu negocio puede viajar a los móviles de todo el mundo — más rápido de lo que yo puedo correr!"</div>
+        </div>
+        <div class="page-num">17</div>
+      </div>
+      <div class="page page-right theme-mint">
+        <span class="big-emoji">🌈</span>
+        <div class="page-heading">¡Tu Página de Ensueño!</div>
+        <div class="page-text">¿Cómo sería TU página de ensueño? 🤔<br><br>¿Quizás estrellas y cohetes? 🚀⭐<br>¿O flores tropicales y sol? 🌺☀️<br>¿O quizás perros y gatos jugando? 🐶🐱<br><br>¡EasyPageX lo hará realidad — exactamente como TÚ lo imaginas!</div>
+        <div class="page-num">18</div>
+      </div>
+    </div>
+
+    <!-- SPREAD 10: Pages 19-20 -->
+    <div class="spread">
+      <div class="page page-left theme-coral">
+        <span class="big-emoji">🔥</span>
+        <div class="page-heading">¡Oferta Especial!</div>
+        <div class="page-text">¡Ahora mismo — hoy — EasyPageX tiene una oferta súper especial! 🎁<br><br>¡Una página profesional a un precio increíble! Pero tienes que ser rápido… los lugares se agotan rápido, ¡como las galletas en una fiesta de cumpleaños! 🍪<br><br>¡Pide la tuya antes de que se acaben!</div>
+        <div class="page-num">19</div>
+      </div>
+      <div class="page page-right theme-yellow">
+        <span class="big-emoji">💬</span>
+        <div class="page-heading">¡Solo Manda un Mensaje!</div>
+        <div class="page-text">¡Empezar es MUY fácil! Solo abre WhatsApp y manda un mensajito. 📲<br><br>Di: <em>"¡Hola! ¡Quiero mi propia página mágica!"</em><br><br>¡Y la aventura comienza! ¡El equipo de EasyPageX estará ahí para ayudarte en cada paso! 🤝</div>
+        <div class="page-num">20</div>
+      </div>
+    </div>
+
+    <!-- SPREAD 11: BACK COVER -->
+    <div class="spread">
+      <div class="page page-left theme-back">
+        <span class="big-emoji">🎉</span>
+        <div class="page-heading" style="color:#fff;">¡El Fin!</div>
+        <div class="page-text" style="color:rgba(255,255,255,0.9);">Y esa es la historia de EasyPageX — ¡el equipo increíble que ayuda a los negocios a brillar en internet, una página mágica a la vez! 🌟<br><br>Recuerda: toda gran aventura empieza con una página. ¿Cuál será TU historia? 📖</div>
+        <div class="cover-star-row">🌟🦊⚡🌟</div>
+      </div>
+      <div class="page page-right theme-back2">
+        <span class="big-emoji">🌐</span>
+        <div class="page-heading">¡Visita EasyPageX!</div>
+        <div class="page-text">¿Listo para tener tu propia página mágica? ¡Visítanos y construyamos algo increíble juntos!</div>
+        <a class="back-link" href="https://easypagex.github.io/easy/" target="_blank">🚀 EasyPageX</a>
+        <div class="social-row">
+          <span class="social-pill">📸 @easypagex</span>
+          <span class="social-pill">💬 WhatsApp</span>
+          <span class="social-pill">🌍 ES + EN</span>
+        </div>
+        <div style="margin-top:14px;font-size:0.72rem;opacity:0.7;font-weight:700;">© 2026 EasyPageX · Páginas web profesionales para pequeños negocios ❤️</div>
+      </div>
+    </div>
+
+  </div><!-- /slider -->
+</div><!-- /book-wrapper -->
+
+<div class="nav-bar">
+  <button class="nav-btn" id="prevBtn" disabled>👈 Atrás</button>
+  <div class="page-indicator" id="pageIndicator">Cover</div>
+  <button class="nav-btn" id="nextBtn">Siguiente 👉</button>
+</div>
+<div class="progress-dots" id="progressDots"></div>
+
+<script>
+// Background floating emojis
+const bgEmojis = ['⭐','🌟','✨','🎈','🎉','🦊','🚀','📄','💫','🌈','❤️','🎨'];
+const bgEl = document.getElementById('bgStars');
+for (let i = 0; i < 18; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  s.textContent = bgEmojis[Math.floor(Math.random() * bgEmojis.length)];
+  s.style.left = Math.random() * 100 + '%';
+  s.style.top  = Math.random() * 100 + '%';
+  s.style.animationDelay    = (Math.random() * 5) + 's';
+  s.style.animationDuration = (4 + Math.random() * 4) + 's';
+  s.style.fontSize = (1 + Math.random() * 1.1) + 'rem';
+  bgEl.appendChild(s);
+}
+
+// Page flip sound (Web Audio API)
+let audioCtx = null;
+function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+function playFlip() {
+  initAudio();
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  // Noise burst
+  const bufLen = Math.floor(audioCtx.sampleRate * 0.18);
+  const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1;
+  const noise = audioCtx.createBufferSource(); noise.buffer = buf;
+  const ng = audioCtx.createGain();
+  ng.gain.setValueAtTime(0.18, t);
+  ng.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+  const nf = audioCtx.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 3200; nf.Q.value = 0.8;
+  noise.connect(nf); nf.connect(ng); ng.connect(audioCtx.destination);
+  noise.start(t); noise.stop(t + 0.18);
+  // Thump
+  const osc = audioCtx.createOscillator();
+  const og = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(180, t);
+  osc.frequency.exponentialRampToValueAtTime(60, t + 0.12);
+  og.gain.setValueAtTime(0.28, t);
+  og.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+  osc.connect(og); og.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + 0.14);
+}
+
+// Book navigation
+const slider   = document.getElementById('slider');
+const prevBtn  = document.getElementById('prevBtn');
+const nextBtn  = document.getElementById('nextBtn');
+const indicator = document.getElementById('pageIndicator');
+const dotsEl   = document.getElementById('progressDots');
+const spreads  = document.querySelectorAll('.spread');
+const total    = spreads.length;
+let current = 0;
+let animating = false;
+
+// Build dots
+for (let i = 0; i < total; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.addEventListener('click', () => goTo(i));
+  dotsEl.appendChild(d);
+}
+
+function getLabel(i) {
+  if (i === 0) return 'Portada 📖';
+  if (i === total - 1) return 'Contraportada';
+  return 'Páginas ' + (i * 2 - 1) + '–' + (i * 2);
+}
+
+function updateUI() {
+  prevBtn.disabled = current === 0;
+  nextBtn.disabled = current === total - 1;
+  indicator.textContent = getLabel(current);
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+}
+
+function goTo(idx) {
+  if (idx === current || animating || idx < 0 || idx >= total) return;
+  animating = true;
+  playFlip();
+  current = idx;
+  slider.style.transform = `translateX(-${current * 100}%)`;
+  updateUI();
+  setTimeout(() => { animating = false; }, 480);
+}
+
+prevBtn.addEventListener('click', () => goTo(current - 1));
+nextBtn.addEventListener('click', () => goTo(current + 1));
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') goTo(current + 1);
+  if (e.key === 'ArrowLeft')  goTo(current - 1);
+});
+
+let tx = 0;
+document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+document.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - tx;
+  if (Math.abs(dx) > 50) dx < 0 ? goTo(current + 1) : goTo(current - 1);
+});
+
+updateUI();
+</script>
+</body>
+</html>
