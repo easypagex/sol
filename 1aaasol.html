@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>SOLAR-SYS // LCD</title>
+<style>
+  :root{
+    --speed: 1;
+    --lcd-green:#39ff6a;
+    --lcd-dim:#0a3d1a;
+  }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  html,body{
+    margin:0; padding:0; height:100%; width:100%;
+    background:#000;
+    overflow:hidden;
+    font-family:'Courier New', 'Lucida Console', monospace;
+    color:var(--lcd-green);
+    user-select:none;
+  }
+
+  /* CRT / LCD screen wrapper */
+  .screen{
+    position:fixed;
+    inset:0;
+    background:#000;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-between;
+    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+  }
+
+  /* scanline / vignette overlay */
+  .crt-overlay{
+    position:fixed; inset:0; pointer-events:none; z-index:50;
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,0) 0px,
+        rgba(0,0,0,0) 2px,
+        rgba(0,255,120,0.035) 3px,
+        rgba(0,0,0,0) 4px
+      );
+    mix-blend-mode:screen;
+  }
+  .vignette{
+    position:fixed; inset:0; pointer-events:none; z-index:51;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.75) 100%);
+  }
+
+  header{
+    width:100%;
+    text-align:center;
+    padding:10px 6px 4px 6px;
+    flex:0 0 auto;
+    z-index:5;
+  }
+  header h1{
+    margin:0;
+    font-size:5.2vw;
+    letter-spacing:3px;
+    color:var(--lcd-green);
+    text-shadow:0 0 4px var(--lcd-green), 0 0 12px rgba(57,255,106,0.6);
+    font-weight:normal;
+  }
+  header .sub{
+    font-size:2.6vw;
+    letter-spacing:2px;
+    color:var(--lcd-dim);
+    text-shadow:0 0 3px rgba(57,255,106,0.4);
+    margin-top:2px;
+  }
+
+  /* main orrery area */
+  .stage-wrap{
+    flex:1 1 auto;
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    min-height:0;
+  }
+
+  .stage{
+    position:relative;
+    width:min(92vw, 62vh);
+    aspect-ratio:1/1;
+  }
+
+  /* orbit path (elliptical, sun at focus) drawn via SVG, see JS */
+  .orbit-svg{
+    position:absolute;
+    inset:0;
+    overflow:visible;
+    pointer-events:none;
+  }
+  .orbit-svg ellipse{
+    fill:none;
+    stroke:rgba(57,255,106,0.28);
+    stroke-width:1;
+    stroke-dasharray:4 5;
+  }
+
+  /* faint fading trail behind each planet, drawn on canvas */
+  .trail-canvas{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+  }
+
+  /* planet is positioned every frame in JS via left/top (px, relative to stage) */
+  .planet{
+    position:absolute;
+    top:0; left:0;
+    transform:translate(-50%,-50%);
+    font-size:var(--psize, 5.5vw);
+    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    filter:drop-shadow(0 0 6px currentColor) drop-shadow(0 0 2px currentColor);
+    will-change:left, top;
+    z-index:4;
+  }
+
+  /* bright readable name tag that follows each planet */
+  .planet-label{
+    position:absolute;
+    top:0; left:0;
+    transform:translate(-50%, 4px);
+    white-space:nowrap;
+    font-size:2.5vw;
+    font-weight:bold;
+    letter-spacing:1px;
+    color:#eaffea;
+    text-shadow:0 0 3px currentColor, 0 0 8px currentColor;
+    will-change:left, top;
+    z-index:4;
+    pointer-events:none;
+  }
+
+  .sun{
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    font-size:12vw;
+    color:#ffe14d;
+    text-shadow:0 0 10px #ffe14d, 0 0 26px #ff9d00, 0 0 46px #ff5e00;
+    z-index:3;
+    animation:pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ transform:translate(-50%,-50%) scale(1); }
+    50%{ transform:translate(-50%,-50%) scale(1.08); }
+  }
+
+  /* individual planet colors */
+  .mercury{ color:#b7b7b7; }
+  .venus  { color:#ffd27a; }
+  .earth  { color:#39d6ff; }
+  .mars   { color:#ff5b3d; }
+  .jupiter{ color:#ff9d4d; }
+  .saturn { color:#ffe97a; }
+  .uranus { color:#7affe0; }
+  .neptune{ color:#7a8bff; }
+
+  footer{
+    flex:0 0 auto;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    padding:8px 6px 16px 6px;
+    z-index:5;
+  }
+
+  .lcd-btn{
+    font-family:inherit;
+    background:#000;
+    border:2px solid var(--lcd-green);
+    color:var(--lcd-green);
+    padding:10px 22px;
+    font-size:4vw;
+    letter-spacing:2px;
+    border-radius:4px;
+    text-shadow:0 0 4px var(--lcd-green);
+    box-shadow:0 0 8px rgba(57,255,106,0.35), inset 0 0 8px rgba(57,255,106,0.15);
+    text-decoration:none;
+    display:inline-block;
+    text-align:center;
+    min-width:66vw;
+    cursor:pointer;
+    transition:background 0.15s ease, color 0.15s ease;
+  }
+  .lcd-btn:active{
+    background:var(--lcd-green);
+    color:#000;
+    text-shadow:none;
+  }
+
+  #turboBtn.turbo-on{
+    background:var(--lcd-green);
+    color:#000;
+    text-shadow:none;
+    box-shadow:0 0 18px var(--lcd-green), 0 0 36px rgba(57,255,106,0.7);
+  }
+
+  .legend{
+    width:100%;
+    max-width:420px;
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:6px 12px;
+    font-size:3.1vw;
+    font-weight:bold;
+    letter-spacing:1px;
+    color:#eaffea;
+    padding:0 8px;
+  }
+  .legend span.sym{
+    text-shadow:0 0 4px currentColor, 0 0 9px currentColor;
+  }
+  .legend .lbl{
+    color:#eaffea;
+    text-shadow:0 0 3px rgba(234,255,234,0.8);
+  }
+</style>
+</head>
+<body>
+
+  <div class="screen">
+    <header>
+      <h1>★ SOLAR-SYS ★</h1>
+      <div class="sub">LCD ORRERY MODE // v1.0</div>
+    </header>
+
+    <div class="stage-wrap">
+      <div class="stage" id="stage">
+        <svg class="orbit-svg" id="orbitSvg"></svg>
+        <canvas class="trail-canvas" id="trailCanvas"></canvas>
+        <div class="sun">●</div>
+        <!-- planets generated and animated by JS -->
+      </div>
+    </div>
+
+    <footer>
+      <div class="legend" id="legend"></div>
+      <button class="lcd-btn" id="turboBtn">⚡ TURBO SPEED: OFF</button>
+      <a class="lcd-btn" href="https://easypagex.github.io" target="_blank" rel="noopener noreferrer">easypagex</a>
+    </footer>
+  </div>
+
+  <div class="crt-overlay"></div>
+  <div class="vignette"></div>
+
+<script>
+  // orbit = semi-major axis, as % of stage half-width
+  // period  = orbital period in seconds, derived from Kepler's 3rd law (T \u221d a^1.5) so
+  //           outer planets correctly take proportionally longer, just like real life
+  // ecc     = real orbital eccentricity (sun sits at a focus, not the center)
+  // spacing is chosen so each planet's full elliptical path (perihelion\u2192aphelion)
+  // stays strictly farther out than the one before it \u2014 correct radial order, no overlaps
+  const BASE_A = 12, BASE_T = 3;
+  const rawPlanets = [
+    { name:'Mercury', symbol:'\u263f', cls:'mercury', a:12, size:4.2, ecc:0.206, color:'#b7b7b7' },
+    { name:'Venus',   symbol:'\u2640', cls:'venus',   a:20, size:4.6, ecc:0.007, color:'#ffd27a' },
+    { name:'Earth',   symbol:'\u2641', cls:'earth',   a:29, size:4.8, ecc:0.017, color:'#39d6ff' },
+    { name:'Mars',    symbol:'\u2642', cls:'mars',    a:38, size:4.4, ecc:0.093, color:'#ff5b3d' },
+    { name:'Jupiter', symbol:'\u2643', cls:'jupiter', a:50, size:6.2, ecc:0.048, color:'#ff9d4d' },
+    { name:'Saturn',  symbol:'\u2644', cls:'saturn',  a:62, size:5.8, ecc:0.056, color:'#ffe97a' },
+    { name:'Uranus',  symbol:'\u2645', cls:'uranus',  a:72, size:5.0, ecc:0.046, color:'#7affe0' },
+    { name:'Neptune', symbol:'\u2646', cls:'neptune', a:82, size:5.0, ecc:0.010, color:'#7a8bff' },
+  ];
+  const planets = rawPlanets.map(p => ({
+    ...p,
+    orbit: p.a,
+    period: BASE_T * Math.pow(p.a / BASE_A, 1.5) // Kepler's third law
+  }));
+
+  const stage = document.getElementById('stage');
+  const legend = document.getElementById('legend');
+  const orbitSvg = document.getElementById('orbitSvg');
+  const trailCanvas = document.getElementById('trailCanvas');
+  const ctx = trailCanvas.getContext('2d');
+  let dpr = window.devicePixelRatio || 1;
+
+  // build planet elements + labels + legend + orbit ellipse guides
+  planets.forEach(p => {
+    p.el = document.createElement('div');
+    p.el.className = 'planet ' + p.cls;
+    p.el.style.setProperty('--psize', p.size + 'vw');
+    p.el.style.color = p.color;
+    p.el.textContent = p.symbol;
+    stage.appendChild(p.el);
+
+    p.labelEl = document.createElement('div');
+    p.labelEl.className = 'planet-label';
+    p.labelEl.style.color = p.color;
+    p.labelEl.textContent = p.name;
+    stage.appendChild(p.labelEl);
+
+    // random starting position along the orbit so planets don't line up
+    p.meanAnomaly0 = Math.random() * Math.PI * 2;
+
+    const ellipse = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+    p.ellipseEl = ellipse;
+    orbitSvg.appendChild(ellipse);
+
+    const tag = document.createElement('span');
+    tag.style.whiteSpace = 'nowrap';
+    tag.innerHTML = `<span class="sym" style="color:${p.color}">${p.symbol}</span> <span class="lbl">${p.name.toUpperCase()}</span>`;
+    legend.appendChild(tag);
+  });
+
+  function layout(){
+    const rect = stage.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    const cx = w / 2, cy = h / 2;
+    orbitSvg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+    dpr = window.devicePixelRatio || 1;
+    trailCanvas.width = w * dpr;
+    trailCanvas.height = h * dpr;
+    trailCanvas.style.width = w + 'px';
+    trailCanvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    planets.forEach(p => {
+      const a = (p.orbit / 100) * (w / 2);      // semi-major axis, px
+      const b = a * Math.sqrt(1 - p.ecc * p.ecc); // semi-minor axis, px
+      const c = a * p.ecc;                        // focus offset, px
+      p._a = a; p._b = b; p._c = c; p._cx = cx; p._cy = cy;
+
+      // draw the ellipse, shifted so the SUN sits at its right-hand focus
+      p.ellipseEl.setAttribute('cx', cx - c);
+      p.ellipseEl.setAttribute('cy', cy);
+      p.ellipseEl.setAttribute('rx', a);
+      p.ellipseEl.setAttribute('ry', b);
+    });
+  }
+
+  window.addEventListener('resize', layout);
+  layout();
+
+  // Turbo speed toggle
+  const turboBtn = document.getElementById('turboBtn');
+  let speedMult = 1;
+  turboBtn.addEventListener('click', () => {
+    const on = speedMult === 1;
+    speedMult = on ? 14 : 1;
+    turboBtn.classList.toggle('turbo-on', on);
+    turboBtn.textContent = on ? '⚡ TURBO SPEED: ON' : '⚡ TURBO SPEED: OFF';
+  });
+
+  let lastTS = null;
+  let simTime = 0;
+
+  function tick(ts){
+    if (lastTS === null) lastTS = ts;
+    const dt = (ts - lastTS) / 1000;
+    lastTS = ts;
+    simTime += dt * speedMult;
+
+    // fade the previous trail slightly instead of clearing \u2014 creates a comet-tail glow
+    const w = trailCanvas.width / dpr, h = trailCanvas.height / dpr;
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = 'rgba(0,0,0,0.06)';
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'source-over';
+
+    planets.forEach(p => {
+      // mean anomaly: uniform angle over time
+      const M = p.meanAnomaly0 + (simTime / p.period) * Math.PI * 2;
+      // true anomaly approximation (Kepler equation, 1st-order eccentricity correction)
+      // -> planets sweep faster near the sun (perihelion), slower far away, like reality
+      const nu = M + 2 * p.ecc * Math.sin(M);
+      const r = (p._a * (1 - p.ecc * p.ecc)) / (1 + p.ecc * Math.cos(nu));
+
+      // sun sits at the focus (origin of this polar coord), ellipse center is offset by -c
+      const x = p._cx - p._c + r * Math.cos(nu);
+      const y = p._cy + r * Math.sin(nu);
+
+      p.el.style.left = x + 'px';
+      p.el.style.top = y + 'px';
+      p.labelEl.style.left = x + 'px';
+      p.labelEl.style.top = y + 'px';
+
+      // stamp a glowing dot into the trail canvas at the planet's current spot
+      ctx.beginPath();
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 6;
+      ctx.arc(x, y, 2.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+</script>
+
+</body>
+</html>
